@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   BarChart3,
+  BookOpen,
   Check,
   ChevronDown,
   Clock3,
@@ -177,6 +178,87 @@ function AppLogo() {
         <div className="brand-tagline">listen · think · answer</div>
       </div>
     </div>
+  );
+}
+
+const englishBelow20 = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
+const englishTens = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+
+function englishNumber(n: number): string {
+  if (n < 20) return englishBelow20[n];
+  if (n === 100) return "one hundred";
+  const unit = n % 10;
+  return unit === 0 ? englishTens[Math.floor(n / 10)] : `${englishTens[Math.floor(n / 10)]}-${englishBelow20[unit]}`;
+}
+
+const studyTabs = Array.from({ length: 10 }, (_, i) => {
+  const start = i === 0 ? 0 : i * 10 + 1;
+  const end = i === 0 ? 10 : i === 9 ? 100 : (i + 1) * 10;
+  return { label: `${start}\u2013${end}`, start, end };
+});
+
+const studyTips: Record<number, string> = {
+  0: "Learn these first. Everything else is built from them.",
+  1: "11 to 16 are unique words. 17, 18, 19 are dix plus the digit.",
+  2: "Add et un for 21. After that it is vingt plus a hyphen and the digit.",
+  3: "Same pattern as the twenties. 31 is trente et un.",
+  4: "Same pattern again. 41 is quarante et un.",
+  5: "Same pattern again. 51 is cinquante et un.",
+  6: "Last of the regular tens. 61 is soixante et un.",
+  7: "French counts 60 plus 10, 60 plus 11 and so on. 71 is soixante et onze.",
+  8: "Four twenties. 80 is quatre-vingts, but 81 has no s and no et.",
+  9: "Four twenties plus 10 to 19. 91 is quatre-vingt-onze, with no et.",
+};
+
+function StudySection() {
+  const [tab, setTab] = useState(0);
+  const [playing, setPlaying] = useState<number | null>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const current = studyTabs[tab];
+  const rows = Array.from({ length: current.end - current.start + 1 }, (_, i) => current.start + i);
+
+  const selectTab = (index: number) => {
+    setTab(index);
+    setPlaying(null);
+    tabRefs.current[index]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  };
+
+  const hear = (n: number) => {
+    setPlaying(n);
+    speakFrench(frenchNumber(n));
+    window.setTimeout(() => setPlaying((value) => (value === n ? null : value)), 1600);
+  };
+
+  return (
+    <section className="study" id="study" aria-label="Study all numbers">
+      <div className="study-head">
+        <div className="section-kicker">Quick study</div>
+        <h2>Every number, 0 to 100</h2>
+        <p>Pick a range. Tap any row to hear the French.</p>
+      </div>
+      <div className="study-tabs" role="tablist" aria-label="Number ranges">
+        {studyTabs.map((item, index) => (
+          <button key={item.label} ref={(el) => { tabRefs.current[index] = el; }} role="tab" aria-selected={tab === index} className={`study-tab ${tab === index ? "selected" : ""}`} onClick={() => selectTab(index)}>{item.label}</button>
+        ))}
+      </div>
+      <div className="study-panel" role="tabpanel">
+        <div className="study-tip"><Sparkles size={20} /><span>{studyTips[tab]}</span></div>
+        <div className="study-cols" aria-hidden="true"><span>No.</span><span>English</span><span>Français</span></div>
+        <div className="study-list">
+          {rows.map((n) => (
+            <button key={n} type="button" className={`study-row ${playing === n ? "is-playing" : ""}`} onClick={() => hear(n)} aria-label={`${n}, ${englishNumber(n)}, ${frenchNumber(n)}. Tap to hear.`}>
+              <span className="study-num">{n}</span>
+              <span className="study-en">{englishNumber(n)}</span>
+              <span className="study-fr">{frenchNumber(n)}</span>
+            </button>
+          ))}
+        </div>
+        <div className="study-nav">
+          <button type="button" className="study-step" disabled={tab === 0} onClick={() => selectTab(tab - 1)}>← Previous</button>
+          <button type="button" className="study-step" disabled={tab === studyTabs.length - 1} onClick={() => selectTab(tab + 1)}>Next →</button>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -412,6 +494,7 @@ export default function Home() {
             <div className="eyebrow"><span className="eyebrow-line" /> French listening practice</div>
             <h1>Hear it.<br /><em>Know it.</em></h1>
             <p className="intro-text">Train your ear for French numbers from zéro to cent. Listen to a number, write what you hear, and build your reflexes one answer at a time.</p>
+            <a className="study-link" href="#study"><BookOpen size={18} /> Study 0 to 100</a>
             <div className="intro-notes">
               <span><Check size={15} /> Instant feedback</span>
               <span><Check size={15} /> Your progress stays private</span>
@@ -532,6 +615,8 @@ export default function Home() {
             )}
           </div>
         </section>
+
+        <StudySection />
 
         <section className="footer-note"><div className="footer-rule" /><div><Info size={15} /><span>Numbers are chosen randomly from 0 to 100. Your practice history is saved only in this browser.</span></div><div className="footer-rule" /></section>
       </main>
