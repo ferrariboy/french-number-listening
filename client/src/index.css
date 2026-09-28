@@ -314,3 +314,61 @@ h1 em { color: var(--coral); font-style: normal; }
   .input-row input { flex: none; width: 100%; height: 68px; }
   .submit-button { flex: none; }
 }
+
+/* ===== Stop button, keypad, larger body text ===== */
+.topline-right { display: flex; align-items: center; gap: 14px; }
+.stop-button { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px; border: 1px solid rgba(207,91,69,.4); border-radius: 10px; color: var(--coral-deep); background: var(--coral-pale); font-size: 13px; font-weight: 800; transition: background 160ms ease, color 160ms ease, transform 160ms ease; }
+.stop-button:hover { color: var(--white); background: var(--coral-deep); }
+.stop-button:active { transform: scale(.96); }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+.key { display: grid; place-items: center; min-height: 64px; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); background: var(--paper); font: 700 30px/1 "Space Grotesk", sans-serif; box-shadow: 0 3px 0 rgba(24,38,59,.08); touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent; transition: background 100ms ease, transform 100ms ease, box-shadow 100ms ease; }
+.key:active:not(:disabled) { background: var(--coral-pale); transform: translateY(2px); box-shadow: 0 1px 0 rgba(24,38,59,.08); }
+.key:disabled { opacity: .4; }
+.key-back { color: var(--ink-soft); }
+.key-go { color: var(--white); background: var(--ink); border-color: var(--ink); font-size: 18px; font-family: "DM Sans", sans-serif; }
+.key-go:active:not(:disabled) { background: var(--coral-deep); }
+
+@media (max-width: 700px) {
+  .stop-button { min-height: 48px; padding: 0 18px; font-size: 17px; border-radius: 12px; }
+  .stop-button svg { width: 16px; height: 16px; }
+  .topline-right { gap: 12px; }
+  .card-topline { min-height: 72px; }
+
+  .intro-text { font-size: 22px; line-height: 1.5; }
+  .intro-notes { font-size: 18px; }
+  .tip-card p { font-size: 19px; }
+  .tip-label { font-size: 15px; }
+  .eyebrow, .section-kicker, .start-kicker { font-size: 14px; }
+  .mode-eyebrow { font-size: 13px; }
+  .mode-copy strong { font-size: 22px; }
+  .mode-copy small { font-size: 17px; }
+  .how-it-works strong { font-size: 18px; }
+  .how-it-works span { font-size: 17px; }
+  .start-state p, .complete-state p { font-size: 20px; }
+  .session-label { font-size: 17px; }
+  .speech-note { font-size: 16px; }
+  .question-prompt { font-size: 16px; }
+  .audio-button, .speed-button { font-size: 18px; }
+  .answer-form label { font-size: 18px; }
+  .answer-help { font-size: 16px; }
+  .footer-note { font-size: 16px; }
+  .site-footer { font-size: 16px; }
+  .stat-pill span { font-size: 14px; }
+  .feedback-message strong { font-size: 20px; }
+  .feedback-message span { font-size: 18px; }
+  .countdown-meta { font-size: 17px; }
+  .result-line { font-size: 18px; }
+  .text-button { font-size: 17px; }
+
+  /* keypad layout: compact prompt so pad fits on screen */
+  .number-placeholder { height: 104px; font-size: 92px; margin: 8px 0 4px; }
+  .question-state { padding-top: 18px; }
+  .answer-form { margin-top: 16px; }
+  .answer-form label { margin-bottom: 8px; }
+  .input-row input[readonly] { height: 72px; text-align: center; font-size: 40px; caret-color: transparent; }
+  .keypad { gap: 10px; margin-top: 12px; }
+  .key { min-height: 72px; font-size: 34px; border-radius: 16px; }
+}
+@media (max-width: 430px) {
+  .brand-name { font-size: 16px; }
+}

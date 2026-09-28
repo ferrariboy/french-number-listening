@@ -12,7 +12,9 @@ import {
   Mic2,
   Pause,
   Play,
+  Delete,
   RotateCcw,
+  Square,
   Sparkles,
   Volume2,
   X,
@@ -190,6 +192,7 @@ export default function Home() {
   const [stats, setStats] = useState<Stats>(defaultStats);
   const [showStats, setShowStats] = useState(false);
   const [hasVoices, setHasVoices] = useState(true);
+  const [useKeypad] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse), (max-width: 700px)").matches);
   const inputRef = useRef<HTMLInputElement>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const answerDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -262,9 +265,9 @@ export default function Home() {
     feedbackRef.current = null;
     setTimeLeft(TEST_SECONDS);
     if (typeof nextQuestionNumber === "number") setQuestionNumber(nextQuestionNumber);
-    window.setTimeout(() => inputRef.current?.focus(), 80);
+    if (!useKeypad) window.setTimeout(() => inputRef.current?.focus(), 80);
     speakFrench(frenchNumber(nextNumber));
-  }, []);
+  }, [useKeypad]);
 
   const startSession = useCallback((selectedMode: Mode = mode) => {
     if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
@@ -282,9 +285,25 @@ export default function Home() {
     currentNumberRef.current = nextNumber;
     setInput("");
     setTimeLeft(TEST_SECONDS);
-    window.setTimeout(() => inputRef.current?.focus(), 120);
+    if (!useKeypad) window.setTimeout(() => inputRef.current?.focus(), 120);
     speakFrench(frenchNumber(nextNumber));
-  }, [mode]);
+  }, [mode, useKeypad]);
+
+  const stopSession = useCallback(() => {
+    if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+    if (answerDebounceTimer.current) clearTimeout(answerDebounceTimer.current);
+    if (questionTimer.current) clearInterval(questionTimer.current);
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    setActive(false);
+    activeRef.current = false;
+    setFeedback(null);
+    feedbackRef.current = null;
+    setInput("");
+    setScore(0);
+    setQuestionNumber(1);
+    setTimeLeft(TEST_SECONDS);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   const finishSession = useCallback((finalScore: number, finalMode: Mode) => {
     setActive(false);
@@ -347,6 +366,12 @@ export default function Home() {
       if (answerDebounceTimer.current) clearTimeout(answerDebounceTimer.current);
       answerDebounceTimer.current = setTimeout(() => submitAnswer(nextValue), 260);
     }
+  };
+
+  const pressKey = (key: string) => {
+    if (feedback) return;
+    if (key === "back") return handleAnswerChange(input.slice(0, -1));
+    handleAnswerChange(input + key);
   };
 
   const handleModeChange = (nextMode: Mode) => {
@@ -443,8 +468,12 @@ export default function Home() {
           <div className={`practice-card ${showActive ? "is-active" : ""} ${feedback ? `has-${feedback}` : ""}`}>
             <div className="card-topline">
               <div className="session-label"><CurrentModeIcon size={16} /> {sessionLabel}</div>
-              {showActive && mode !== "practice" && <div className="question-count"><span>{Math.min(questionNumber, QUIZ_LENGTH)}</span> / {QUIZ_LENGTH}</div>}
-              {showActive && mode === "practice" && <div className="practice-badge">Keep going</div>}
+              {showActive && (
+                <div className="topline-right">
+                  {mode !== "practice" && <div className="question-count"><span>{Math.min(questionNumber, QUIZ_LENGTH)}</span> / {QUIZ_LENGTH}</div>}
+                  <button type="button" className="stop-button" onClick={stopSession} aria-label="Stop and return to main menu"><Square size={14} fill="currentColor" /> Stop</button>
+                </div>
+              )}
             </div>
 
             {!showActive && !isSessionComplete && (
@@ -469,8 +498,17 @@ export default function Home() {
                 {mode === "test" && !feedback && <div className={`countdown ${timeLeft <= 1.25 ? "urgent" : ""}`}><div className="countdown-meta"><span>Time to answer</span><strong>{timeLeft.toFixed(1)}s</strong></div><div className="countdown-track"><div className="countdown-fill" style={{ width: `${percent}%` }} /></div></div>}
                 <form className="answer-form" onSubmit={handleSubmit}>
                   <label htmlFor="answer">Your answer</label>
-                  <div className="input-row"><input ref={inputRef} id="answer" inputMode="numeric" pattern="[0-9]*" autoComplete="off" value={input} onChange={(event) => handleAnswerChange(event.target.value)} placeholder="e.g. 42" disabled={Boolean(feedback)} aria-describedby="answer-help" /><button type="submit" className="submit-button" disabled={mode === "test" || Boolean(feedback) || !input}>{mode === "test" ? "Auto-check" : "Check"} {mode !== "test" && <ArrowRight size={17} />}</button></div>
-                  <div className="answer-help" id="answer-help"><span>Number only</span><span>{mode === "test" ? "Checks automatically" : "Press Enter ↵"}</span></div>
+                  <div className="input-row"><input ref={inputRef} id="answer" inputMode={useKeypad ? "none" : "numeric"} readOnly={useKeypad} pattern="[0-9]*" autoComplete="off" value={input} onChange={(event) => handleAnswerChange(event.target.value)} placeholder="?" disabled={Boolean(feedback)} aria-describedby="answer-help" />{!useKeypad && <button type="submit" className="submit-button" disabled={mode === "test" || Boolean(feedback) || !input}>{mode === "test" ? "Auto-check" : "Check"} {mode !== "test" && <ArrowRight size={17} />}</button>}</div>
+                  {useKeypad ? (feedback ? null :
+                    <div className="keypad" role="group" aria-label="Number pad">
+                      {["1","2","3","4","5","6","7","8","9"].map((k) => <button key={k} type="button" className="key" onClick={() => pressKey(k)} disabled={Boolean(feedback)}>{k}</button>)}
+                      <button type="button" className="key key-back" onClick={() => pressKey("back")} disabled={Boolean(feedback) || !input} aria-label="Delete"><Delete size={28} /></button>
+                      <button type="button" className="key" onClick={() => pressKey("0")} disabled={Boolean(feedback)}>0</button>
+                      <button type="submit" className="key key-go" disabled={mode === "test" || Boolean(feedback) || !input}>{mode === "test" ? "Auto" : <Check size={32} strokeWidth={3} />}</button>
+                    </div>
+                  ) : (
+                    <div className="answer-help" id="answer-help"><span>Number only</span><span>{mode === "test" ? "Checks automatically" : "Press Enter ↵"}</span></div>
+                  )}
                 </form>
                 {feedback && (
                   <div className={`feedback-message ${feedback}`} role="status">
