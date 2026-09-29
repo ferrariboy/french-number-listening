@@ -39,7 +39,7 @@ type Stats = {
 const STATS_KEY = "french-number-listening-stats-v1";
 const QUIZ_LENGTH = 10;
 const FEEDBACK_MS = 3000;
-const TEST_SECONDS = 4;
+const TEST_SECONDS = 5;
 
 const defaultStats: Stats = {
   attempts: 0,
@@ -68,7 +68,7 @@ const modeMeta: Record<Mode, { label: string; eyebrow: string; description: stri
   test: {
     label: "Timed test",
     eyebrow: "Test conditions",
-    description: "Ten numbers. Four seconds per question. Stay sharp.",
+    description: "Ten numbers. Five seconds per question. Stay sharp.",
     icon: Clock3,
   },
 };
@@ -277,6 +277,7 @@ export default function Home() {
   const [useKeypad] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse), (max-width: 700px)").matches);
   const inputRef = useRef<HTMLInputElement>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputValueRef = useRef("");
   const answerDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const questionTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const activeRef = useRef(active);
@@ -305,6 +306,8 @@ export default function Home() {
     setHasVoices(false);
   }, []);
 
+  useEffect(() => { inputValueRef.current = input; }, [input]);
+
   useEffect(() => {
     if (!active || mode !== "test" || feedback) return;
     setTimeLeft(TEST_SECONDS);
@@ -315,7 +318,7 @@ export default function Home() {
       setTimeLeft(remaining);
       if (remaining <= 0) {
         clearInterval(questionTimer.current!);
-        submitAnswer("");
+        submitAnswer(inputValueRef.current);
       }
     }, 50);
     return () => { if (questionTimer.current) clearInterval(questionTimer.current); };
@@ -444,10 +447,6 @@ export default function Home() {
   const handleAnswerChange = (value: string) => {
     const nextValue = value.replace(/[^0-9]/g, "").slice(0, 3);
     setInput(nextValue);
-    if (mode === "test" && nextValue && !feedback) {
-      if (answerDebounceTimer.current) clearTimeout(answerDebounceTimer.current);
-      answerDebounceTimer.current = setTimeout(() => submitAnswer(nextValue), 260);
-    }
   };
 
   const pressKey = (key: string) => {
@@ -564,7 +563,7 @@ export default function Home() {
                 <div className="listen-orb"><Headphones size={36} strokeWidth={1.5} /><span /></div>
                 <div className="start-kicker">{modeMeta[mode].eyebrow}</div>
                 <h3>Ready when you are.</h3>
-                <p>{mode === "test" ? "You’ll have 4 seconds to enter each answer." : mode === "quiz" ? "Ten questions with a little breathing room between each one." : "There’s no clock here. Just listen, answer, and learn."}</p>
+                <p>{mode === "test" ? "You’ll have 5 seconds to enter each answer. Your answer is checked when time is up." : mode === "quiz" ? "Ten questions with a little breathing room between each one." : "There’s no clock here. Just listen, answer, and learn."}</p>
                 <button className="primary-button" onClick={() => startSession()}><Play size={17} fill="currentColor" /> Start {mode === "practice" ? "practicing" : mode === "quiz" ? "the quiz" : "the test"}</button>
                 <span className="speech-note"><Mic2 size={13} /> French computer voice · female voice when available</span>
               </div>
@@ -581,16 +580,16 @@ export default function Home() {
                 {mode === "test" && !feedback && <div className={`countdown ${timeLeft <= 1.25 ? "urgent" : ""}`}><div className="countdown-meta"><span>Time to answer</span><strong>{timeLeft.toFixed(1)}s</strong></div><div className="countdown-track"><div className="countdown-fill" style={{ width: `${percent}%` }} /></div></div>}
                 <form className="answer-form" onSubmit={handleSubmit}>
                   <label htmlFor="answer">Your answer</label>
-                  <div className="input-row"><input ref={inputRef} id="answer" inputMode={useKeypad ? "none" : "numeric"} readOnly={useKeypad} pattern="[0-9]*" autoComplete="off" value={input} onChange={(event) => handleAnswerChange(event.target.value)} placeholder="?" disabled={Boolean(feedback)} aria-describedby="answer-help" />{!useKeypad && <button type="submit" className="submit-button" disabled={mode === "test" || Boolean(feedback) || !input}>{mode === "test" ? "Auto-check" : "Check"} {mode !== "test" && <ArrowRight size={17} />}</button>}</div>
+                  <div className="input-row"><input ref={inputRef} id="answer" inputMode={useKeypad ? "none" : "numeric"} readOnly={useKeypad} pattern="[0-9]*" autoComplete="off" value={input} onChange={(event) => handleAnswerChange(event.target.value)} placeholder="?" disabled={Boolean(feedback)} aria-describedby="answer-help" />{!useKeypad && <button type="submit" className="submit-button" disabled={Boolean(feedback) || !input}>Check <ArrowRight size={17} /></button>}</div>
                   {useKeypad ? (feedback ? null :
                     <div className="keypad" role="group" aria-label="Number pad">
                       {["1","2","3","4","5","6","7","8","9"].map((k) => <button key={k} type="button" className="key" onClick={() => pressKey(k)} disabled={Boolean(feedback)}>{k}</button>)}
                       <button type="button" className="key key-back" onClick={() => pressKey("back")} disabled={Boolean(feedback) || !input} aria-label="Delete"><Delete size={28} /></button>
                       <button type="button" className="key" onClick={() => pressKey("0")} disabled={Boolean(feedback)}>0</button>
-                      <button type="submit" className="key key-go" disabled={mode === "test" || Boolean(feedback) || !input}>{mode === "test" ? "Auto" : <Check size={32} strokeWidth={3} />}</button>
+                      <button type="submit" className="key key-go" disabled={Boolean(feedback) || !input}><Check size={32} strokeWidth={3} /></button>
                     </div>
                   ) : (
-                    <div className="answer-help" id="answer-help"><span>Number only</span><span>{mode === "test" ? "Checks automatically" : "Press Enter ↵"}</span></div>
+                    <div className="answer-help" id="answer-help"><span>Number only</span><span>{mode === "test" ? "Checked when time is up" : "Press Enter ↵"}</span></div>
                   )}
                 </form>
                 {feedback && (
